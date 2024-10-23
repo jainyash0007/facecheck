@@ -13,26 +13,26 @@ def subjectchoose(text_to_speech):
             t='Please enter the subject name.'
             text_to_speech(t)
         os.chdir(
-            f"Attendance\\{Subject}"
+            f"AttendanceSystem\\{Subject}"
         )
         filenames = glob(
-            f"Attendance\\{Subject}\\{Subject}*.csv"
+            f"AttendanceSystem\\{Subject}\\{Subject}*.csv"
         )
         df = [pd.read_csv(f) for f in filenames]
         newdf = df[0]
         for i in range(1, len(df)):
             newdf = newdf.merge(df[i], how="outer")
         newdf.fillna(0, inplace=True)
-        newdf["Attendance"] = 0
+        newdf["AttendanceSystem"] = 0
         for i in range(len(newdf)):
-            newdf["Attendance"].iloc[i] = str(int(round(newdf.iloc[i, 2:-1].mean() * 100)))+'%'
+            newdf["AttendanceSystem"].iloc[i] = str(int(round(newdf.iloc[i, 2:-1].mean() * 100)))+'%'
             #newdf.sort_values(by=['Enrollment'],inplace=True)
         newdf.to_csv("attendance.csv", index=False)
 
         root = tkinter.Tk()
         root.title("Attendance of "+Subject)
         root.configure(background="black")
-        cs = f"Attendance\\{Subject}\\attendance.csv"
+        cs = f"AttendanceSystem\\{Subject}\\attendance.csv"
         with open(cs) as file:
             reader = csv.reader(file)
             r = 0
@@ -86,7 +86,7 @@ def subjectchoose(text_to_speech):
             text_to_speech(t)
         else:
             os.startfile(
-            f"Attendance\\{sub}"
+            f"AttendanceSystem\\{sub}"
             )
 
 
