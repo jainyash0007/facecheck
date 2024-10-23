@@ -1,7 +1,6 @@
 import tkinter as tk
 from tkinter import *
 import os, cv2
-import shutil
 import csv
 import numpy as np
 from PIL import ImageTk, Image
@@ -11,57 +10,35 @@ import time
 import tkinter.font as font
 import pyttsx3
 
-# project module
+# Importing modules
 import show_attendance
 import takeImage
 import trainImage
 import automaticAttedance
-
-# engine = pyttsx3.init()
-# engine.say("Welcome!")
-# engine.say("Please browse through your options..")
-# engine.runAndWait()
-
 
 def text_to_speech(user_text):
     engine = pyttsx3.init()
     engine.say(user_text)
     engine.runAndWait()
 
-
 haarcasecade_path = "haarcascade_frontalface_default.xml"
-trainimagelabel_path = (
-    "TrainingImageLabel/Trainner.yml"
-)
+trainimagelabel_path = "TrainingImage/Trainner.yml"
 trainimage_path = "TrainingImage"
-if not os.path.exists(trainimage_path):
-    os.makedirs(trainimage_path)
-
-studentdetail_path = (
-    "/StudentDetails/studentdetails.csv"
-)
+studentdetail_path = "StudentDetails/studentdetails.csv"
 attendance_path = "Attendance"
 
+if not os.path.exists(trainimage_path):
+    os.makedirs(trainimage_path)
 
 window = Tk()
 window.title("Face recognizer")
 window.geometry("1280x720")
-dialog_title = "QUIT"
-dialog_text = "Are you sure want to close?"
 window.configure(background="black")
 
-
-# to destroy screen
-def del_sc1():
-    sc1.destroy()
-
-
-# error message for name and no
 def err_screen():
     global sc1
     sc1 = tk.Tk()
     sc1.geometry("400x110")
-    sc1.iconbitmap("AMS.ico")
     sc1.title("Warning!!")
     sc1.configure(background="black")
     sc1.resizable(0, 0)
@@ -70,7 +47,7 @@ def err_screen():
         text="Enrollment & Name required!!!",
         fg="yellow",
         bg="black",
-        font=("times", 20, " bold "),
+        font=("times", 20, "bold"),
     ).pack()
     tk.Button(
         sc1,
@@ -81,16 +58,17 @@ def err_screen():
         width=9,
         height=1,
         activebackground="Red",
-        font=("times", 20, " bold "),
+        font=("times", 20, "bold"),
     ).place(x=110, y=50)
 
+def del_sc1():
+    sc1.destroy()
 
 def testVal(inStr, acttyp):
     if acttyp == "1":  # insert
         if not inStr.isdigit():
             return False
     return True
-
 
 logo = Image.open("UI_Image/0001.png")
 logo = logo.resize((50, 47), Image.LANCZOS)
@@ -142,13 +120,12 @@ def TakeImageUI():
     ImageUI.resizable(0, 0)
     titl = tk.Label(ImageUI, bg="black", relief=RIDGE, bd=10, font=("arial", 35))
     titl.pack(fill=X)
-    # image and title
+    
     titl = tk.Label(
         ImageUI, text="Register Your Face", bg="black", fg="green", font=("arial", 30),
     )
     titl.place(x=270, y=12)
 
-    # heading
     a = tk.Label(
         ImageUI,
         text="Enter the details",
@@ -159,7 +136,6 @@ def TakeImageUI():
     )
     a.place(x=280, y=75)
 
-    # ER no
     lbl1 = tk.Label(
         ImageUI,
         text="Enrollment No",
@@ -185,7 +161,6 @@ def TakeImageUI():
     txt1.place(x=250, y=130)
     txt1["validatecommand"] = (txt1.register(testVal), "%P", "%d")
 
-    # name
     lbl2 = tk.Label(
         ImageUI,
         text="Name",
@@ -250,8 +225,6 @@ def TakeImageUI():
         txt1.delete(0, "end")
         txt2.delete(0, "end")
 
-    # take Image button
-    # image
     takeImg = tk.Button(
         ImageUI,
         text="Take Image",
@@ -275,7 +248,6 @@ def TakeImageUI():
             text_to_speech,
         )
 
-    # train Image function call
     trainImg = tk.Button(
         ImageUI,
         text="Train Image",
@@ -339,6 +311,7 @@ r = tk.Button(
     width=17,
 )
 r.place(x=1000, y=520)
+
 r = tk.Button(
     window,
     text="EXIT",
