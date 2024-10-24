@@ -47,7 +47,13 @@ const Signin = ({ loadUser, onRouteChange }) => {
         .then((user) => {
           if (user._id) {
             loadUser(user);
-            onRouteChange("home");
+            if (user.image){
+              onRouteChange("dashboard");
+            }
+            else{
+              onRouteChange("home");
+            }
+            
           } else {
             setState((prevState) => ({
               ...prevState,
@@ -85,7 +91,7 @@ const Signin = ({ loadUser, onRouteChange }) => {
             id="email-address"
             onChange={onEmailChange}
             onFocus={(event) => {
-              event.target.style.background = "black";
+              event.target.style.background = "";
             }}
             onBlur={(event) => {
               event.target.style.background = "";
@@ -104,7 +110,7 @@ const Signin = ({ loadUser, onRouteChange }) => {
             id="password"
             onChange={onPasswordChange}
             onFocus={(event) => {
-              event.target.style.background = "black";
+              event.target.style.background = "";
             }}
             onBlur={(event) => {
               event.target.style.background = "";

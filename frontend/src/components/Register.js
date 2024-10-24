@@ -6,12 +6,20 @@ const Register = ({ loadUser, onRouteChange }) => {
     email: "",
     password: "",
     name: "",
+    cin: "",
+    role: "student", // Default value for the dropdown
     showAlert: false,
     alertMessage: "",
   });
 
   const onNameChange = (event) => {
-    setState((prevState) => ({ ...prevState, name: event.target.value }));
+    const value = event.target.value;
+    
+    // Replace any character that is not a letter or space
+    const filteredValue = value.replace(/[^a-zA-Z\s]/g, "");
+  
+    // Update the state with the filtered value (only letters and spaces)
+    setState((prevState) => ({ ...prevState, name: filteredValue }));
   };
 
   const onEmailChange = (event) => {
@@ -22,6 +30,19 @@ const Register = ({ loadUser, onRouteChange }) => {
     setState((prevState) => ({ ...prevState, password: event.target.value }));
   };
 
+  const onCinChange = (event) => {
+    const value = event.target.value;
+
+    // Ensure only numeric input and restrict max length to 9 characters
+    if (/^\d*$/.test(value) && value.length <= 9) {
+      setState((prevState) => ({ ...prevState, cin: value }));
+    }
+  };
+
+  const onRoleChange = (event) => {
+    setState((prevState) => ({ ...prevState, role: event.target.value }));
+  };
+
   const handleCloseAlert = () => {
     setState((prevState) => ({
       ...prevState,
@@ -30,9 +51,21 @@ const Register = ({ loadUser, onRouteChange }) => {
     }));
   };
 
-  const onSubmitSignIn = () => {
-    const { email, password, name } = state;
-    if (!email || !password || !name) {
+  const onSubmitSignIn = async () => {
+    const { email, password, name, cin, role } = state;
+
+    // Email domain validation
+    if (!email || !email.includes("@") || !email.endsWith(".edu")) {
+      setState((prevState) => ({
+        ...prevState,
+        showAlert: true,
+        alertMessage: "Email must end with '.edu' to register.",
+      }));
+      return;
+    }
+
+    // Validate form fields
+    if (!email || !password || !name || !cin || !role) {
       setState((prevState) => ({
         ...prevState,
         showAlert: true,
@@ -41,25 +74,78 @@ const Register = ({ loadUser, onRouteChange }) => {
       return;
     }
 
+    // Check for CIN and Email uniqueness
     try {
-      fetch(`${process.env.REACT_APP_SERVER}/register`, {
-        method: "post",
+      const checkResponse = await fetch(`${process.env.REACT_APP_SERVER}/check-cin-email`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cin, email }),
+      });
+
+      // Ensure we handle non-JSON responses gracefully
+      let checkData;
+      try {
+        checkData = await checkResponse.json();
+      } catch (jsonError) {
+        throw new Error("Server returned an invalid response. Please try again later.");
+      }
+
+      if (!checkResponse.ok) {
+        throw new Error(checkData.message || "Error checking CIN and Email.");
+      }
+
+      // Check if either CIN or Email already exists
+      if (checkData.emailExists) {
+        setState((prevState) => ({
+          ...prevState,
+          showAlert: true,
+          alertMessage: "Email already exists.",
+        }));
+        return;
+      }
+      if (checkData.cinExists) {
+        setState((prevState) => ({
+          ...prevState,
+          showAlert: true,
+          alertMessage: "CIN already exists.",
+        }));
+        return;
+      }
+
+      // Proceed with registration if both CIN and email are unique
+      const registerResponse = await fetch(`${process.env.REACT_APP_SERVER}/register`, {
+        method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           email,
           password,
           name,
+          cin,
+          role,  // Include the role in the request
         }),
-      })
-        .then((response) => response.json())
-        .then((user) => {
-          if (user._id) {
-            loadUser(user);
-            onRouteChange("home");
-          }
-        });
+      });
+
+      // Handle non-JSON response or errors gracefully
+      let registerData;
+      try {
+        registerData = await registerResponse.json();
+      } catch (jsonError) {
+        throw new Error("Server returned an invalid response during registration. Please try again.");
+      }
+
+      if (registerResponse.ok && registerData._id) {
+        loadUser(registerData);
+        onRouteChange("home");
+      } else {
+        throw new Error(registerData.message || "Registration failed. Please try again.");
+      }
     } catch (error) {
-      console.log("Error:", error);
+      console.log("Error during registration:", error);
+      setState((prevState) => ({
+        ...prevState,
+        showAlert: true,
+        alertMessage: error.message || "Error during registration. Please try again.",
+      }));
     }
   };
 
@@ -68,28 +154,45 @@ const Register = ({ loadUser, onRouteChange }) => {
       <div className="container homepage">
         <p className="heading">Register</p>
         <div className="container">
-          <label className="form-title" htmlFor="name">
-            Name
-          </label>
+          <label className="form-title" htmlFor="name">Name</label>
           <br />
           <input
             className="input-area"
             type="text"
             name="name"
             id="name"
+            value = {state.name}
             onChange={onNameChange}
-            onFocus={(event) => {
-              event.target.style.background = "black";
-            }}
-            onBlur={(event) => {
-              event.target.style.background = "";
-            }}
           />
         </div>
+        <div className="container">
+          <label className="form-title" htmlFor="cin">CIN</label>
+          <br />
+          <input
+            className="input-area"
+            type="text"
+            name="cin"
+            id="cin"
+            value={state.cin}
+            onChange={onCinChange}
+          />
+        </div>
+        <div className="container">
+          <label className="form-title" htmlFor="role">Role</label>
+          <br />
+          <select
+            className="input-area"
+            name="role"
+            id="role"
+            value={state.role}
+            onChange={onRoleChange}
+          >
+            <option value="student">Student</option>
+            <option value="faculty">Faculty</option>
+          </select>
+        </div>
         <div className="container ">
-          <label className="form-title" htmlFor="email-address">
-            Email
-          </label>
+          <label className="form-title" htmlFor="email-address">Email</label>
           <br />
           <input
             className="input-area"
@@ -97,18 +200,10 @@ const Register = ({ loadUser, onRouteChange }) => {
             name="email-address"
             id="email-address"
             onChange={onEmailChange}
-            onFocus={(event) => {
-              event.target.style.background = "black";
-            }}
-            onBlur={(event) => {
-              event.target.style.background = "";
-            }}
           />
         </div>
         <div className="container">
-          <label className="form-title" htmlFor="password">
-            Password
-          </label>
+          <label className="form-title" htmlFor="password">Password</label>
           <br />
           <input
             className="input-area"
@@ -116,12 +211,6 @@ const Register = ({ loadUser, onRouteChange }) => {
             name="password"
             id="password"
             onChange={onPasswordChange}
-            onFocus={(event) => {
-              event.target.style.background = "black";
-            }}
-            onBlur={(event) => {
-              event.target.style.background = "";
-            }}
           />
         </div>
         <div>

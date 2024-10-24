@@ -1,50 +1,18 @@
-import React, { useState } from "react";
+import React, { useState,useRef } from "react";
 import ParticlesBg from "particles-bg";
-import Navigation from "./components/Navigation.js";
-import Signin from "./components/Signin.js";
-import Register from "./components/Register.js";
-import FaceDetection from "./components/FaceDetection.js";
-import Logo from "./components/Logo.js";
-import ImageLinkForm from "./components/ImageLinkForm.js";
-
-const returnClarifaiRequestOptions = (imageURL) => {
-  const PAT = process.env.REACT_APP_API_PAT;
-  const USER_ID = process.env.REACT_APP_API_USER_ID_NAME;
-  const APP_ID = process.env.REACT_APP_USER_APP;
-  const IMAGE_URL = imageURL;
-
-  const raw = JSON.stringify({
-    user_app_id: {
-      user_id: USER_ID,
-      app_id: APP_ID,
-    },
-    inputs: [
-      {
-        data: {
-          image: {
-            url: IMAGE_URL,
-          },
-        },
-      },
-    ],
-  });
-
-  const requestOptions = {
-    method: "POST",
-    headers: {
-      Accept: "application/json",
-      Authorization: "Key " + PAT,
-    },
-    body: raw,
-  };
-  return requestOptions;
-};
+import Navigation from "./components/Navigation";
+import Signin from "./components/Signin";
+import Register from "./components/Register";
+import FaceDetection from "./components/FaceDetection";
+import Logo from "./components/Logo";
+import ImageLinkForm from "./components/ImageLinkForm";
+import Dashboard from "./components/Dashboard"; // Import Dashboard
 
 const initialState = {
   input: "",
   imageURL: "",
   box: {},
-  route: "signin",
+  route: "signin", // Default route set to "signin"
   isSignedIn: false,
   user: {
     id: "",
@@ -52,13 +20,19 @@ const initialState = {
     email: "",
     entries: 0,
     joined: "",
+    image: null, // Store the image data from the backend
   },
 };
 
 const App = () => {
   const [state, setState] = useState(initialState);
+  const clearImageRef = useRef(null); 
+
+  // Clear Image when user signs out
   const clearImage = () => {
-    console.log("Clear Image function called");
+    if (clearImageRef.current) {
+      clearImageRef.current(); // Call the clearImage function from ImageLinkForm
+    }
     setState((prevState) => ({
       ...prevState,
       input: "",
@@ -67,6 +41,8 @@ const App = () => {
     }));
   };
 
+
+  // Load User data after Signin/Register
   const loadUser = (data) => {
     setState((prevState) => ({
       ...prevState,
@@ -76,10 +52,14 @@ const App = () => {
         email: data.email,
         entries: data.entries,
         joined: data.joined,
+        image: data.image || null, // Check if user has an image
       },
     }));
+
+
   };
 
+  // Calculate face location for the detected faces
   const calculateFaceLocation = (data) => {
     const clarifaiFaces = data.outputs[0].data.regions.map(
       (region) => region.region_info.bounding_box
@@ -104,87 +84,60 @@ const App = () => {
     setState((prevState) => ({ ...prevState, box: boxes }));
   };
 
+  // Handle input change for the image URL
   const onInputChange = (event) => {
     setState((prevState) => ({ ...prevState, input: event.target.value }));
   };
 
+  // Submit button logic to handle image submission
   const onButtonSubmit = () => {
     setState((prevState) => ({ ...prevState, imageURL: prevState.input }));
-
-    try {
-      fetch(
-        "https://api.clarifai.com/v2/models/face-detection/versions/6dc7e46bc9124c5c8824be4822abe105/outputs",
-        returnClarifaiRequestOptions(state.input)
-      )
-        .then((response) => response.json())
-        .then((response) => {
-          console.log(response);
-          if (response) {
-            try {
-              fetch(
-                `${process.env.REACT_APP_SERVER}/image`,
-                {
-                  method: "put",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({
-                    id: state.user.id,
-                  }),
-                }
-              )
-                .then((response) => response.json())
-                .then((count) => {
-                  setState((prevState) => ({
-                    ...prevState,
-                    user: { ...prevState.user, entries: count },
-                  }));
-                });
-            } catch (error) {
-              console.log("Error:", error);
-            }
-          }
-          displayFaceBox(calculateFaceLocation(response));
-        })
-        .catch((error) => {
-          console.log("Error:", error);
-        });
-    } catch (error) {
-      console.log("Error:", error);
-    }
+    // Further logic for submitting image and processing face detection
   };
 
+  // Handle route change for navigation
   const onRouteChange = (route) => {
     if (route === "signout") {
       setState(initialState);
-      clearImage();
+      clearImage(); // Clear image when signing out
     } else if (route === "home") {
-      setState((prevState) => ({ ...prevState, isSignedIn: true }));
+      setState((prevState) => ({ ...prevState, isSignedIn: true, route: "home" }));
+    } else if (route === "dashboard") {
+      setState((prevState) => ({
+        ...prevState,
+        isSignedIn: true,
+        route: "dashboard",
+      }));
+    } else {
+      setState((prevState) => ({ ...prevState, route }));
     }
-    setState((prevState) => ({ ...prevState, route: route }));
   };
 
-  const { isSignedIn, imageURL, route, box } = state;
+  const { isSignedIn, imageURL, route, box, user } = state;
+
   return (
     <div className="App">
       <ParticlesBg type="cobweb" color="#f1ebeb" bg={true} />
       <Navigation isSignedIn={isSignedIn} onRouteChange={onRouteChange} />
-      <Logo />
       {route === "home" ? (
         <div>
           <ImageLinkForm
             onInputChange={onInputChange}
             onButtonSubmit={onButtonSubmit}
-            name={state.user.name}
-            entries={state.user.entries}
-            clearImage={clearImage}
+            onRouteChange={onRouteChange}
+            userId={user.id}
+            name={user.name}
+            entries={user.entries}
+            clearImageRef={clearImageRef} 
           />
-          <FaceDetection
-            box={box}
-            imageURL={imageURL}
-            clearImage={clearImage}
-          />
+          <FaceDetection box={box} imageURL={imageURL} clearImage={clearImage} />
         </div>
       ) : route === "signin" ? (
         <Signin loadUser={loadUser} onRouteChange={onRouteChange} />
+      ) : route === "register" ? (
+        <Register loadUser={loadUser} onRouteChange={onRouteChange} />
+      ) : route === "dashboard" ? (
+        <Dashboard userId={user.id} imageURL={user.image} />
       ) : (
         <Register loadUser={loadUser} onRouteChange={onRouteChange} />
       )}
