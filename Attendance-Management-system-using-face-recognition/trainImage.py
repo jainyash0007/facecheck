@@ -35,7 +35,7 @@ def getImagesAndLables(path):
                 imageNp = np.array(pilImage, "uint8")
 
                 # Extract the filename
-                filename = os.path.split(imagePath)[-1]  # Get 'Jain_ayush_65_1.jpg'
+                filename = os.path.split(imagePath)[-1]
 
                 # Split by underscore and extract the second part (the ID)
                 try:
