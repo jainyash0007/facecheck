@@ -79,7 +79,7 @@ l1 = tk.Label(window, image=logo1, bg="black",)
 l1.place(x=470, y=10)
 
 titl = tk.Label(
-    window, text="Smart College!!", bg="black", fg="green", font=("arial", 27),
+    window, text="CSU LA", bg="black", fg="green", font=("arial", 27),
 )
 titl.place(x=525, y=12)
 
@@ -117,7 +117,7 @@ def TakeImageUI():
     ImageUI.title("Take Student Image..")
     ImageUI.geometry("780x480")
     ImageUI.configure(background="black")
-    ImageUI.resizable(0, 0)
+    ImageUI.resizable(True, True)  # Enable resizing for both width and height
     titl = tk.Label(ImageUI, bg="black", relief=RIDGE, bd=10, font=("arial", 35))
     titl.pack(fill=X)
     
@@ -138,7 +138,7 @@ def TakeImageUI():
 
     lbl1 = tk.Label(
         ImageUI,
-        text="Enrollment No",
+        text="CIN",
         width=10,
         height=2,
         bg="black",
@@ -198,15 +198,15 @@ def TakeImageUI():
     lbl3.place(x=120, y=270)
 
     message = tk.Label(
-        ImageUI,
-        text="",
-        width=32,
-        height=2,
-        bd=5,
-        bg="black",
-        fg="yellow",
-        relief=RIDGE,
-        font=("times", 12, "bold"),
+    ImageUI,
+    text="",
+    bd=5,
+    bg="black",
+    fg="yellow",
+    relief=RIDGE,
+    font=("times", 12, "bold"),
+    wraplength=600,  # Set wrap length to allow text wrapping
+    justify="left",  # Align text to the left
     )
     message.place(x=250, y=270)
 

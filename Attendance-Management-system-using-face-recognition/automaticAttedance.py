@@ -19,122 +19,103 @@ attendance_path = "AttendanceSystem"
 def subjectChoose(text_to_speech):
     def FillAttendance():
         sub = tx.get()
-        now = time.time()
-        future = now + 20
-
         if sub == "":
             t = "Please enter the subject name!!!"
             text_to_speech(t)
-        else:
+            return
+
+        try:
+            recognizer = cv2.face.LBPHFaceRecognizer_create()
             try:
-                recognizer = cv2.face.LBPHFaceRecognizer_create()
-                try:
-                    recognizer.read(trainimagelabel_path)
-                except Exception as e:
-                    e = "Model not found, please train the model."
-                    Notifica.configure(
-                        text=e,
-                        bg="black",
-                        fg="yellow",
-                        width=33,
-                        font=("times", 15, "bold"),
-                    )
-                    Notifica.place(x=20, y=250)
-                    text_to_speech(e)
-                    return  # Exit if the model can't be loaded
-
-                facecasCade = cv2.CascadeClassifier(haarcasecade_path)
-                df = pd.read_csv(studentdetail_path)
-                cam = cv2.VideoCapture(0)
-                attendance = pd.DataFrame(columns=["Enrollment", "Name"])
-
-                detected_ids = set()  # Keep track of already detected IDs
-
-                while True:
-                    ret, im = cam.read()
-                    gray = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
-                    faces = facecasCade.detectMultiScale(gray, 1.2, 5)
-
-                    for (x, y, w, h) in faces:
-                        Id, conf = recognizer.predict(gray[y:y + h, x:x + w])
-
-                        if conf < 70:  # Adjust threshold as needed
-                            ts = time.time()
-                            date = datetime.datetime.fromtimestamp(ts).strftime("%Y-%m-%d")
-                            timeStamp = datetime.datetime.fromtimestamp(ts).strftime("%H:%M:%S")
-
-                            aa = df.loc[df["Enrollment"] == Id]["Name"].values
-                            if len(aa) > 0:
-                                name = aa[0]
-                            else:
-                                name = "Unknown"
-                            
-                            # Only add the ID if it hasn't been detected yet
-                            if Id not in detected_ids:
-                                tt = f"{Id}-{name}"
-                                print(tt)
-
-                                attendance.loc[len(attendance)] = [Id, name]
-                                detected_ids.add(Id)  # Mark the ID as detected
-
-                            cv2.rectangle(im, (x, y), (x + w, y + h), (0, 260, 0), 4)
-                            cv2.putText(im, str(tt), (x + h, y), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 0), 4)
-                        else:
-                            Id = "Unknown"
-                            tt = str(Id)
-                            cv2.rectangle(im, (x, y), (x + w, y + h), (0, 25, 255), 7)
-                            cv2.putText(im, str(tt), (x + h, y), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 25, 255), 4)
-
-                    if time.time() > future:
-                        break
-
-                    cv2.imshow("Filling Attendance...", im)
-                    if cv2.waitKey(30) & 0xFF == 27:
-                        break
-
-                cam.release()
-                cv2.destroyAllWindows()
-                
-
-                # Create necessary folders if they don't exist
-                if not os.path.exists(attendance_path):
-                    os.makedirs(attendance_path)
-                path = os.path.join(attendance_path, sub)
-                if not os.path.exists(path):
-                    os.makedirs(path)
-
-                # Save attendance
-                ts = time.time()
-                date = datetime.datetime.fromtimestamp(ts).strftime("%Y-%m-%d")
-                timeStamp = datetime.datetime.fromtimestamp(ts).strftime("%H:%M:%S")
-                Hour, Minute, Second = timeStamp.split(":")
-
-                fileName = f"{path}/{sub}_{date}_{Hour}-{Minute}-{Second}.csv"
-                attendance.to_csv(fileName, index=False)
-                print(f"Attendance saved to {fileName}")
-
-                # Notify user
-                m = f"Attendance filled successfully for {sub}"
+                recognizer.read(trainimagelabel_path)
+            except Exception as e:
+                e = "Model not found, please train the model."
                 Notifica.configure(
-                    text=m,
+                    text=e,
                     bg="black",
                     fg="yellow",
                     width=33,
-                    relief=RIDGE,
-                    bd=5,
                     font=("times", 15, "bold"),
                 )
-                text_to_speech(m)
                 Notifica.place(x=20, y=250)
+                text_to_speech(e)
+                return
 
-                # Show the attendance in a new window
-                showAttendance(fileName)
+            face_cascade = cv2.CascadeClassifier(haarcasecade_path)
+            df = pd.read_csv(studentdetail_path)
 
-            except Exception as e:
-                f = f"No Face found for attendance. Error: {str(e)}"
-                print(f)
-                text_to_speech(f)
-                cv2.destroyAllWindows()
+            # Initialize attendance tracker
+            detected_ids = set()  # Set to keep track of marked IDs
+            attendance = pd.DataFrame(columns=["Enrollment", "Name"])  # Attendance DataFrame
+
+            # Initialize webcam
+            cam = cv2.VideoCapture(0)
+            now = time.time()
+            future = now + 20  # Time limit for the attendance loop
+
+            while True:
+                ret, im = cam.read()
+                if not ret:
+                    break
+
+                gray = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
+                faces = face_cascade.detectMultiScale(gray, scaleFactor=1.2, minNeighbors=5)
+
+                for (x, y, w, h) in faces:
+                    id, confidence = recognizer.predict(gray[y:y + h, x:x + w])
+
+                    if confidence < 70:  # Face recognized
+                        name = df.loc[df["Enrollment"] == id, "Name"].values
+                        name = name[0] if len(name) > 0 else "Unknown"
+
+                        # If the student is not already marked present
+                        if id not in detected_ids:
+                            detected_ids.add(id)
+                            attendance.loc[len(attendance)] = [id, name]  # Add to attendance
+                            t = f"Marked Present: {id} - {name}"
+                            print(t)
+                            text_to_speech(t)
+
+                        # Draw rectangle and display ID
+                        cv2.rectangle(im, (x, y), (x + w, y + h), (0, 255, 0), 2)
+                        cv2.putText(im, f"{id}-{name}", (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 0), 2)
+                    else:  # Face not recognized
+                        cv2.rectangle(im, (x, y), (x + w, y + h), (0, 0, 255), 2)
+                        cv2.putText(im, "Unknown", (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 0, 255), 2)
+
+                if time.time() > future:
+                    break
+
+                cv2.imshow("Filling Attendance...", im)
+                if cv2.waitKey(30) & 0xFF == 27:  # Exit on pressing ESC
+                    break
+
+            cam.release()
+            cv2.destroyAllWindows()
+
+            # Save attendance to file
+            ts = time.time()
+            date = datetime.datetime.fromtimestamp(ts).strftime("%Y-%m-%d")
+            timeStamp = datetime.datetime.fromtimestamp(ts).strftime("%H-%M-%S")
+            path = os.path.join(attendance_path, sub)
+
+            if not os.path.exists(path):
+                os.makedirs(path)
+
+            attendance_file = f"{path}/{sub}_{date}_{timeStamp}.csv"
+            attendance.to_csv(attendance_file, index=False)
+
+            t = f"Attendance saved to {attendance_file}"
+            text_to_speech(t)
+            print(t)
+
+            # Display the attendance in a new window
+            showAttendance(attendance_file)
+
+        except Exception as e:
+            t = f"Error: {str(e)}"
+            text_to_speech(t)
+            print(t)
 
     def showAttendance(fileName):
         root = Tk()
