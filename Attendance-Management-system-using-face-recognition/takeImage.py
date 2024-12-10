@@ -100,10 +100,10 @@ def TakeImage(l1, l2, haarcasecade_path, trainimage_path, message, err_screen, t
                 os.path.join(path, f"{l2}_{l1}_{str(sampleNum)}.jpg"),
                 gray[y: y + h, x: x + w],
             )
-            cv2.putText(img, f"Capturing: {sampleNum}/100", (x, y - 10),
+            cv2.putText(img, f"Capturing: {sampleNum}/200", (x, y - 10),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
 
-        if detected_duplicate or sampleNum >= 100:
+        if detected_duplicate or sampleNum >= 200:
             break
 
         cv2.imshow("Capturing Images...", img)

@@ -49,3 +49,12 @@ def getImagesAndLables(path):
                 ids.append(Id)
 
     return faces, ids
+
+def retrain_model(trainimage_path, trainimagelabel_path, haarcasecade_path):
+    recognizer = cv2.face.LBPHFaceRecognizer_create()
+    detector = cv2.CascadeClassifier(haarcasecade_path)
+
+    faces, ids = getImagesAndLables(trainimage_path)
+    recognizer.train(faces, np.array(ids))
+    recognizer.save(trainimagelabel_path)
+    print("Model retrained successfully!")

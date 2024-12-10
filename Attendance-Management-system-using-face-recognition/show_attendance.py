@@ -10,24 +10,36 @@ def subjectchoose(text_to_speech):
     def calculate_attendance():
         Subject = tx.get()
         if Subject == "":
-            t = 'Please enter the subject name.'
+            t = "Please enter the subject name."
             text_to_speech(t)
+            Notifica.configure(text=t, bg="red", fg="white")
+            Notifica.place(x=140, y=250)
             return
 
         # Call the attendance aggregation function here
-        aggregate_attendance(Subject)
+        try:
+            aggregate_attendance(Subject)
+        except FileNotFoundError:
+            t = f"No attendance data found for {Subject}."
+            text_to_speech(t)
+            Notifica.configure(text=t, bg="red", fg="white")
+            Notifica.place(x=140, y=250)
+            return
 
         # After aggregation, display the attendance in a new window
-        root = tk.Tk()
-        root.title(f"Attendance of {Subject}")
-        root.configure(background="black")
         aggregated_file = f"AttendanceSystem\\{Subject}\\{Subject}_aggregated_attendance.csv"
-        
+
         if not os.path.exists(aggregated_file):
             t = f"No attendance data found for {Subject}."
             text_to_speech(t)
+            Notifica.configure(text=t, bg="red", fg="white")
+            Notifica.place(x=140, y=250)
             return
-        
+
+        root = tk.Tk()
+        root.title(f"Attendance of {Subject}")
+        root.configure(background="black")
+
         with open(aggregated_file) as file:
             reader = csv.reader(file)
             r = 0
@@ -40,7 +52,7 @@ def subjectchoose(text_to_speech):
                         width=15,
                         height=1,
                         fg="yellow",
-                        font=("times", 15, " bold "),
+                        font=("times", 15, "bold"),
                         bg="black",
                         text=row,
                         relief=tk.RIDGE,
@@ -184,4 +196,14 @@ def subjectchoose(text_to_speech):
     )
     fill_a.place(x=195, y=170)
 
+    Notifica = tk.Label(
+    subject,
+    text="",
+    bg="black",
+    fg="yellow",
+    width=33,
+    height=2,
+    font=("times", 15, "bold"),
+)
+    Notifica.place(x=140, y=250)
     subject.mainloop()
